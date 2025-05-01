@@ -25,8 +25,6 @@ pVersion = '1.0.0'
 pUrl = 'https://github.com/Allurbasearebelongtous/AutoSecretDungeon'
 pUrlEnglish = 'https://github.com/Allurbasearebelongtous/AutoSecretDungeon/wiki'
 pUrlTurkish = 'https://github.com/Allurbasearebelongtous/AutoSecretDungeon/wiki/Bilgiler'
-pUrlEnglish = ''
-pUrlTurkish = ''
 glb_char_data = None
 glb_entered_dungeon = False
 glb_loaded = False
@@ -153,8 +151,8 @@ gui_huntspot_area_name = QtBind.createLineEdit(gui,"Hunt",gui_hunt_area_name_lin
 btnLoadConfig = QtBind.createButton(gui,'LoadConfig',"   load config    ",gui_window_padding_x,280)
 btnSaveConfig = QtBind.createButton(gui,'SaveConfigIfJoined',"   save config    ",gui_window_padding_x + 100,280)
 
-btnLoadConfig = QtBind.createButton(gui,'LoadConfig',"   load config    ",650,280)
-btnSaveConfig = QtBind.createButton(gui,'SaveConfigIfJoined',"   save config    ",gui_window_padding_x + 100,280)
+gui_guideEng = QtBind.createButton(gui,'OpenGuidePageEng',"English!",640,200)
+gui_guideTurkish = QtBind.createButton(gui,'OpenGuidePageTurkish',"Turkish",640,170)
 
 versionLabel = QtBind.createLabel(gui, 'version 1.0.0', 650, 300)
 
@@ -169,7 +167,11 @@ def cbx_lower_clicked(checked):
 		QtBind.setChecked(gui, gui_upper_checkbox, False)
 		SaveConfigIfJoined()
 		
+def OpenGuidePageEng():
+	webbrowser.open(pUrlEnglish)
 
+def OpenGuidePageTurkish():
+	webbrowser.open(pUrlTurkish)
 # ______________________________ logger ______________________________ #
 def LogMsg(logstr):
 	log(logPrefix + logstr)
@@ -549,43 +551,49 @@ def UnequipItem(item):
 		Inject_InventoryMovement(0,item['slot'],slot,item['name'])
 
 def PreliminaryCheck():
-    global glb_readyToEnter
-    if glb_readyToEnter == False and glb_char_data['name'] == str(QtBind.text(gui, gui_leaderName)):
-        players = get_party()
-        numberOfMembers = len(players)
-        if numberOfMembers < 8:
-            LogMsg(f"Waiting for party to be full. Current members: {numberOfMembers}/8")
-            return False
-        else:
-            trainingArea = get_training_area()
-            char_data = get_character_data()
-            areaXY = [int(trainingArea['x']), int(trainingArea['y'])]
-            LogMsg(f"Training area: {str(areaXY)}")
+	global glb_readyToEnter
+	if glb_readyToEnter == False and glb_char_data['name'] == str(QtBind.text(gui, gui_leaderName)):
+		players = get_party()
+		numberOfMembers = len(players)
+		requiredmembers = 8
+		try:
+			requiredmembers = int(QtBind.text(gui, gui_partySize))
+		except ValueError:
+			LogMsg('⚠️ party size not recognised as number. make sure you entered only numbers in party size line!')
+
+		if (numberOfMembers < requiredmembers):
+			LogMsg(f"Waiting for {requiredmembers} members to join party. Current members: {numberOfMembers}/{requiredmembers}")
+			return False
+		else:
+			trainingArea = get_training_area()
+			char_data = get_character_data()
+			areaXY = [int(trainingArea['x']), int(trainingArea['y'])]
+			LogMsg(f"Training area: {str(areaXY)}")
 
             # First check if current player is in the training area
-            currentPlayerXY = [int(char_data['x']), int(char_data['y'])]
-            LogMsg(f"Player location: {str(currentPlayerXY)}")
-            currentPlayerDistance = math.dist(currentPlayerXY, areaXY)
-            if currentPlayerDistance > 3:
-                LogMsg(f"Player {char_data['name']} is too far from training area (distance: {currentPlayerDistance})")
-                return False
+			currentPlayerXY = [int(char_data['x']), int(char_data['y'])]
+			LogMsg(f"Player location: {str(currentPlayerXY)}")
+			currentPlayerDistance = math.dist(currentPlayerXY, areaXY)
+			if currentPlayerDistance > 3:
+				LogMsg(f"Player {char_data['name']} is too far from training area (distance: {currentPlayerDistance})")
+				return False
+			
+			if players:
+				for key, player in players.items():
+					if player['player_id'] <= 0:
+						LogMsg(f"Player {player['name']} doesn't have a valid unique player ID.")
+						return False
+					else:
+						playerXY = [int(player['x']), int(player['y'])]
+						distance = math.dist(playerXY, areaXY)
+						if distance > 3:
+							LogMsg(f"Player {player['name']} is too far from training area (distance: {distance})")
+							return False
 
-            if players:
-                for key, player in players.items():
-                    if player['player_id'] <= 0:
-                        LogMsg(f"Player {player['name']} doesn't have a valid unique player ID.")
-                        return False
-                    else:
-                        playerXY = [int(player['x']), int(player['y'])]
-                        distance = math.dist(playerXY, areaXY)
-                        if distance > 3:
-                            LogMsg(f"Player {player['name']} is too far from training area (distance: {distance})")
-                            return False
-
-            glb_readyToEnter = True
-            LogMsg("Preliminary checks succeeded! We can enter the dungeon.")
-            return True
-    return False
+			glb_readyToEnter = True
+			LogMsg("Preliminary checks succeeded! We can enter the dungeon.")
+			return True
+	return False
 
 
 def RequestDungeonEntry():
