@@ -1,0 +1,9 @@
+walk,3549,2070,-106
+walk,3548,2083,-106
+wait,5000
+teleport,Donwhang,Hotan
+wait,5000
+walk,118,4,244
+walk,123,-3,243
+secret_dungeon_prepare
+stop
